@@ -39,8 +39,8 @@ if [ $? -eq 0 ]; then
     echo "PM2 process started."
 
     # Show information about the PM2 process
-    sudo pm2 show "$app_name"
-    
+    sudo pm2 show 0
+
   else
     echo "Error: Failed to copy files to app folder."
   fi

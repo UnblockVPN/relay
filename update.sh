@@ -37,6 +37,10 @@ if [ $? -eq 0 ]; then
     # Start the PM2 process
     sudo pm2 start "$app_name" --watch --log --env production
     echo "PM2 process started."
+
+    # Show information about the PM2 process
+    sudo pm2 show "$app_name"
+    
   else
     echo "Error: Failed to copy files to app folder."
   fi

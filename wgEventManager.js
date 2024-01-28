@@ -1,4 +1,4 @@
-//wgEventHandler.js
+// File: wgEventHandler.js
 const EventSource = require('eventsource');
 const { readWgConfig } = require('./readFunctions');
 const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');

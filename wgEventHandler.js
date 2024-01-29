@@ -56,13 +56,13 @@ function updateConfigWithNewPeer(config, ip, pubkey) {
     // Make sure to return the updated configuration.
     return config; // Replace with actual update logic.
 }
-
+*/
 function removePeerFromConfig(config, ip) {
     logger.debug(`Removing peer from config: IP - ${ip}`);
     // Logic to remove the specified peer from the configuration.
     // Make sure to return the updated configuration.
     return config; // Replace with actual removal logic.
-} */
+} 
 
 // Initialize SSE
 initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);

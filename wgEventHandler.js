@@ -22,7 +22,7 @@ const wgConfPath = '/etc/wireguard/wg0.conf';
 const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
-function processInsertEvent(ip, pubkey) {
+/* function processInsertEvent(ip, pubkey) {
     logger.debug(`Initiating processInsertEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {
         if (!config) {
@@ -62,7 +62,7 @@ function removePeerFromConfig(config, ip) {
     // Logic to remove the specified peer from the configuration.
     // Make sure to return the updated configuration.
     return config; // Replace with actual removal logic.
-}
+} */
 
 // Initialize SSE
 initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);

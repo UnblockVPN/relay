@@ -1,7 +1,7 @@
 #!/bin/bash
 # Update server by cloning the current configuration on gh then stop and start the daemon
 # Author: David Awatere
-# update.sh
+# File: update.sh
 
 # Define the URLs and paths
 repository_url="https://github.com/UnblockVPN/relay"

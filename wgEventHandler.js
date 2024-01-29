@@ -35,7 +35,7 @@ const tempConfigPath = tempDir + 'wg0.conf.update.temp';
         applyWgConfig(tempConfigPath);
     });
 }
-
+*/
 function processDeleteEvent(ip) {
     logger.debug(`Initiating processDeleteEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {
@@ -49,7 +49,7 @@ function processDeleteEvent(ip) {
         applyWgConfig(tempConfigPath);
     });
 }
-*/
+
 function updateConfigWithNewPeer(config, ip, pubkey) {
     logger.debug(`Updating config with new peer: IP - ${ip}, pubkey - ${pubkey}`);
     // Logic to update the configuration with the new peer.

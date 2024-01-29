@@ -22,7 +22,7 @@ const wgConfPath = '/etc/wireguard/wg0.conf';
 const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
-/* function processInsertEvent(ip, pubkey) {
+function processInsertEvent(ip, pubkey) {
     logger.debug(`Initiating processInsertEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {
         if (!config) {
@@ -35,7 +35,7 @@ const tempConfigPath = tempDir + 'wg0.conf.update.temp';
         applyWgConfig(tempConfigPath);
     });
 }
-*/
+
 function processDeleteEvent(ip) {
     logger.debug(`Initiating processDeleteEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {

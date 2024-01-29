@@ -1,4 +1,3 @@
-// File: wgEventHandler.js
 const EventSource = require('eventsource');
 const { readWgConfig } = require('./readFunctions');
 const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');
@@ -78,21 +77,17 @@ function processDeleteEvent(ip) {
 }
 
 function updateConfigWithNewPeer(config, ip, pubkey) {
-    // Add logic here to update the configuration with the new peer.
-    // Log relevant information about the update process.
     logger.debug(`Updating config with new peer: IP - ${ip}, pubkey - ${pubkey}`);
-    // Your logic for updating the configuration goes here.
+    // Logic to update the configuration with the new peer.
     // Make sure to return the updated configuration.
-    return config;
+    return config; // Replace with actual update logic.
 }
 
 function removePeerFromConfig(config, ip) {
-    // Add logic here to remove the specified peer from the configuration.
-    // Log relevant information about the removal process.
     logger.debug(`Removing peer from config: IP - ${ip}`);
-    // Your logic for removing the peer from the configuration goes here.
+    // Logic to remove the specified peer from the configuration.
     // Make sure to return the updated configuration.
-    return config;
+    return config; // Replace with actual removal logic.
 }
 
 // Keep the script running

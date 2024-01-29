@@ -27,6 +27,9 @@ function readWgConfig(configPath, callback) {
             if (error) {
                 logger.error(`Error reading WireGuard configuration: ${error.message}`);
                 callback(null);
+            } else if (!data) {
+                logger.error('Empty configuration file.');
+                callback(null);
             } else {
                 logger.debug(`WireGuard configuration read successfully.`);
                 callback(data);
@@ -37,6 +40,7 @@ function readWgConfig(configPath, callback) {
         callback(null);
     }
 }
+
 
 module.exports = {
     readWgConfig

@@ -6,6 +6,9 @@ const util = require('util');
 const { exec } = require('child_process');
 const { createSemaphore } = require('ws');
 const semaphore = createSemaphore(1);
+
+const { processRemovePeerEvent } = require('./sseHandler');
+const { processNewPeerEvent } = require('./newPeerHandler');
 const { initializeSSE, processNewPeerEvent, processRemovePeerEvent } = require('./sseHandler');
 
 // Configure the logger

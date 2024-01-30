@@ -1,0 +1,227 @@
+// File: readFunctions.js
+const winston = require('winston');
+const { exec } = require('child_process'); // Add this import
+
+// Configure the logger
+const logger = winston.createLogger({
+    level: 'debug',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'debug.log' })
+    ]
+});
+
+/**
+ * Reads the WireGuard configuration file using 'wg syncconf'.
+ * @param {Function} callback - The callback function to handle the read configuration.
+ */
+function readWgConfig(callback) {
+    logger.debug(`Reading WireGuard configuration using 'wg syncconf'`);
+    exec(`sudo wg syncconf wg0 -`, (error, stdout, stderr) => {
+        if (error) {
+            logger.error(`Error reading WireGuard configuration: ${error.message}`);
+            callback(null);
+        } else if (stderr) {
+            logger.error(`Error reading WireGuard configuration: ${stderr}`);
+            callback(null);
+        } else {
+            logger.debug(`WireGuard configuration read successfully.`);
+            callback(stdout); // Pass the configuration data to the callback
+        }
+    });
+}
+
+module.exports = {
+    readWgConfig
+};
+// File: sseHandler.js
+const EventSource = require('eventsource');
+const winston = require('winston');
+
+// Configure the logger
+const logger = winston.createLogger({
+    level: 'debug',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'debug.log' })
+    ]
+});
+
+function initializeSSE(sseUrl, processInsertEvent, processDeleteEvent) {
+    const eventSource = new EventSource(sseUrl);
+
+    eventSource.onmessage = event => {
+        try {
+            logger.debug('File: sseHandler.js: Event received. Starting to process...');
+            const data = JSON.parse(event.data);
+            logger.debug(`File: sseHandler.js: Parsed event data: ${JSON.stringify(data, null, 2)}`);
+
+            if (data.type === 'INSERT') {
+                const { ipv4_address, pubkey } = data.data;
+                logger.debug(`File: sseHandler.js: Processing INSERT event for IP: ${ipv4_address} with pubkey: ${pubkey}`);
+                processInsertEvent(ipv4_address, pubkey);
+            } else if (data.type === 'DELETE') {
+                const { ipv4_address } = data.data;
+                logger.debug(`File: sseHandler.js: Processing DELETE event for IP: ${ipv4_address}`);
+                processDeleteEvent(ipv4_address);
+            }
+        } catch (error) {
+            logger.error(`File: sseHandler.js: Error processing event: ${error.message}`);
+        }
+    };
+
+    eventSource.onerror = error => {
+        logger.error(`File: sseHandler.js: EventSource encountered an error: ${JSON.stringify(error, null, 2)}`);
+    };
+}
+
+module.exports = {
+    initializeSSE
+};
+// File: wgEventHandler.js
+const { initializeSSE } = require('./sseHandler');
+const { readWgConfig } = require('./readFunctions');
+const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');
+const winston = require('winston');
+
+// Configure the logger
+const logger = winston.createLogger({
+    level: 'debug',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'debug.log' })
+    ]
+});
+
+const sseUrl = 'https://api.unblockvpn.io/sse/events';
+const wgConfPath = '/etc/wireguard/wg0.conf';
+const tempDir = '/home/unblockvpnio/';
+const tempConfigPath = tempDir + 'wg0.conf.update.temp';
+
+function processInsertEvent(ip, pubkey) {
+    logger.debug(`File: wgEventHandler.js: Initiating processInsertEvent for IP: ${ip}`);
+    
+    // Add debugging statement
+    logger.debug('File: wgEventHandler.js: Before reading WireGuard configuration.');
+
+    readWgConfig(wgConfPath, config => {
+        if (!config) {
+            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT event.');
+            return;
+        }
+        
+        // Add debugging statement
+        logger.debug('File: wgEventHandler.js: After reading WireGuard configuration.');
+
+        const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
+        logger.debug('File: wgEventHandler.js: Updated configuration prepared for INSERT event.');
+        writeTempWgConfig(tempConfigPath, updatedConfig);
+        applyWgConfig(tempConfigPath);
+    });
+}
+
+function processDeleteEvent(ip) {
+    logger.debug(`File: wgEventHandler.js: Initiating processDeleteEvent for IP: ${ip}`);
+    readWgConfig(wgConfPath, config => {
+        if (!config) {
+            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for DELETE event.');
+            return;
+        }
+        const updatedConfig = removePeerFromConfig(config, ip);
+        logger.debug('File: wgEventHandler.js: Updated configuration prepared for DELETE event.');
+        writeTempWgConfig(tempConfigPath, updatedConfig);
+        applyWgConfig(tempConfigPath);
+    });
+}
+
+function updateConfigWithNewPeer(config, ip, pubkey) {
+    logger.debug(`File: wgEventHandler.js: Updating config with new peer: IP - ${ip}, pubkey - ${pubkey}`);
+    // Logic to update the configuration with the new peer.
+    // Make sure to return the updated configuration.
+    return config; // Replace with actual update logic.
+}
+
+function removePeerFromConfig(config, ip) {
+    logger.debug(`File: wgEventHandler.js: Removing peer from config: IP - ${ip}`);
+    // Logic to remove the specified peer from the configuration.
+    // Make sure to return the updated configuration.
+    return config; // Replace with actual removal logic.
+}  
+
+// Initialize SSE
+initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);
+
+// Keep the script running
+process.stdin.resume();
+logger.debug('File: wgEventHandler.js: Script initialized and running.');
+// File: writeFunctions.js
+const fs = require('fs');
+const { exec } = require('child_process');
+const winston = require('winston');
+
+// Configure the logger
+const logger = winston.createLogger({
+    level: 'debug',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'debug.log' })
+    ]
+});
+
+/**
+ * Writes the temporary WireGuard configuration.
+ * @param {string} tempConfigPath - The path to the temporary configuration file.
+ * @param {string} config - The configuration data to be written.
+ */
+function writeTempWgConfig(tempConfigPath, config) {
+    logger.debug(`File: writeFunctions.js: Attempting to write configuration to temp file: ${tempConfigPath}`);
+    try {
+        fs.writeFileSync(tempConfigPath, config, 'utf8');
+        logger.debug(`File: writeFunctions.js: Configuration successfully written to temp file.`);
+    } catch (error) {
+        logger.error(`File: writeFunctions.js: Error writing to temp file: ${error.message}`);
+    }
+}
+
+/**
+ * Applies the WireGuard configuration using the 'wg syncconf' command.
+ * @param {string} tempConfigPath - The path to the temporary configuration file.
+ */
+function applyWgConfig(tempConfigPath) {
+    logger.debug(`File: writeFunctions.js: Preparing to execute wg syncconf with temp file: ${tempConfigPath}`);
+    exec(`sudo wg syncconf wg0 ${tempConfigPath}`, (error, stdout, stderr) => {
+        if (error) {
+            logger.error(`File: writeFunctions.js: Error applying wg config: ${error.message}`);
+            return;
+        }
+        if (stderr) {
+            logger.error(`File: writeFunctions.js: stderr applying wg config: ${stderr}`);
+            return;
+        }
+        logger.debug(`File: writeFunctions.js: WireGuard configuration applied successfully from ${tempConfigPath}`);
+        if (stdout) {
+            logger.debug(`File: writeFunctions.js: stdout from wg syncconf: ${stdout}`);
+        }
+    });
+}
+
+module.exports = {
+    writeTempWgConfig,
+    applyWgConfig
+};

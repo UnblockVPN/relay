@@ -35,7 +35,7 @@ const tempConfigPath = tempDir + 'wg0.conf.update.temp';
         applyWgConfig(tempConfigPath);
     });
 }
-
+*/
 function processDeleteEvent(ip) {
     logger.debug(`Initiating processDeleteEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {
@@ -62,7 +62,7 @@ function removePeerFromConfig(config, ip) {
     // Logic to remove the specified peer from the configuration.
     // Make sure to return the updated configuration.
     return config; // Replace with actual removal logic.
-}  */
+}  
 
 // Initialize SSE
 initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);

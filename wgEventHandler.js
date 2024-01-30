@@ -1,5 +1,4 @@
 // File: wgEventHandler.js
-const semaphore = createSemaphore(1);
 const { initializeSSE } = require('./sseHandler');
 const { readWgConfig } = require('./readFunctions');
 const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');
@@ -7,7 +6,7 @@ const winston = require('winston');
 const util = require('util');
 const { exec } = require('child_process');
 const { createSemaphore } = require('ws');
-
+const semaphore = createSemaphore(1);
 
 
 // Configure the logger

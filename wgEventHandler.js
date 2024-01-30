@@ -6,7 +6,7 @@ const util = require('util');
 const { exec } = require('child_process');
 const { createSemaphore } = require('ws');
 const semaphore = createSemaphore(1);
-const { initializeSSE, processNewPeerEvent, processRemovePeerEvent } = require('./sseHandler');
+const { initializeSSE, processInsertEvent, processRemovePeerEvent } = require('./sseHandler');
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -26,23 +26,23 @@ const wgConfPath = '/etc/wireguard/wg0.conf';
 const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
-function processNewPeerEvent(ip, pubkey) {
+function processInsertEvent(ip, pubkey) {
     try {
         semaphore.acquire();
 
         readWgConfig((config, error) => {
             if (error) {
-                logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for NEW_PEER event: ${error}`);
+                logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT_PEER event: ${error}`);
                 return;
             }
 
             if (!config) {
-                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for NEW_PEER event.');
+                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for INSERT_PEER event.');
                 return;
             }
 
             const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
-            logger.debug('File: wgEventHandler.js: Updated configuration prepared for NEW_PEER event.');
+            logger.debug('File: wgEventHandler.js: Updated configuration prepared for INSERT_PEER event.');
             writeTempWgConfig(tempConfigPath, updatedConfig);
             applyWgConfig(tempConfigPath);
 
@@ -57,11 +57,11 @@ function processRemovePeerEvent(ip) {
     logger.debug(`File: wgEventHandler.js: Initiating processRemovePeerEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {
         if (!config) {
-            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for REMOVE_PEER event.');
+            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for DELETE_PEER event.');
             return;
         }
         const updatedConfig = removePeerFromConfig(config, ip);
-        logger.debug('File: wgEventHandler.js: Updated configuration prepared for REMOVE_PEER event.');
+        logger.debug('File: wgEventHandler.js: Updated configuration prepared for DELETE_PEER event.');
         writeTempWgConfig(tempConfigPath, updatedConfig);
         applyWgConfig(tempConfigPath);
     });
@@ -86,7 +86,7 @@ function removePeerFromConfig(config, ip) {
 }  
 
 // Initialize SSE
-initializeSSE(sseUrl, processNewPeerEvent, processRemovePeerEvent);
+initializeSSE(sseUrl, processInsertEvent, processRemovePeerEvent);
 
 // Keep the script running
 process.stdin.resume();

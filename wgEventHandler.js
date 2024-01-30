@@ -84,7 +84,7 @@ function removePeerFromConfig(config, ip) {
 }  
 
 // Initialize SSE
-initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);
+//initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);
 
 // Keep the script running
 process.stdin.resume();

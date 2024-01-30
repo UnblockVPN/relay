@@ -15,14 +15,12 @@ const logger = winston.createLogger({
 });
 
 /**
- * Reads the WireGuard configuration file with sudo.
- * @param {string} configPath - The path to the WireGuard configuration file.
+ * Reads the WireGuard configuration file using 'wg syncconf'.
  * @param {Function} callback - The callback function to handle the read configuration.
  */
-function readWgConfig(configPath, callback) {
-    const command = `sudo cat ${configPath}`;
-    logger.debug(`Reading WireGuard configuration using sudo from: ${configPath}`);
-    exec(command, (error, stdout, stderr) => {
+function readWgConfig(callback) {
+    logger.debug(`Reading WireGuard configuration using 'wg syncconf'`);
+    exec(`sudo wg syncconf wg0 -`, (error, stdout, stderr) => {
         if (error) {
             logger.error(`Error reading WireGuard configuration: ${error.message}`);
             callback(null);

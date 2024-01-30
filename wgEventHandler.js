@@ -22,13 +22,21 @@ const wgConfPath = '/etc/wireguard/wg0.conf';
 const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
- function processInsertEvent(ip, pubkey) {
+function processInsertEvent(ip, pubkey) {
     logger.debug(`Initiating processInsertEvent for IP: ${ip}`);
+    
+    // Add debugging statement
+    logger.debug('Before reading WireGuard configuration.');
+
     readWgConfig(wgConfPath, config => {
         if (!config) {
             logger.error('Failed to read WireGuard configuration for INSERT event.');
             return;
         }
+        
+        // Add debugging statement
+        logger.debug('After reading WireGuard configuration.');
+
         const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
         logger.debug('Updated configuration prepared for INSERT event.');
         writeTempWgConfig(tempConfigPath, updatedConfig);

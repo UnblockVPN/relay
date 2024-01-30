@@ -6,7 +6,7 @@ const util = require('util');
 const { exec } = require('child_process');
 const { createSemaphore } = require('ws');
 const semaphore = createSemaphore(1);
-const { initializeSSE, processInsertEvent, processDeleteEvent } = require('./sseHandler');
+const { initializeSSE, processNewPeerEvent, processRemovePeerEvent } = require('./sseHandler');
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -53,15 +53,15 @@ function processNewPeerEvent(ip, pubkey) {
     }
 }
 
-function processDeleteEvent(ip) {
-    logger.debug(`File: wgEventHandler.js: Initiating processDeleteEvent for IP: ${ip}`);
+function processRemovePeerEvent(ip) {
+    logger.debug(`File: wgEventHandler.js: Initiating processRemovePeerEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {
         if (!config) {
-            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for DELETE event.');
+            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for REMOVE_PEER event.');
             return;
         }
         const updatedConfig = removePeerFromConfig(config, ip);
-        logger.debug('File: wgEventHandler.js: Updated configuration prepared for DELETE event.');
+        logger.debug('File: wgEventHandler.js: Updated configuration prepared for REMOVE_PEER event.');
         writeTempWgConfig(tempConfigPath, updatedConfig);
         applyWgConfig(tempConfigPath);
     });
@@ -86,7 +86,7 @@ function removePeerFromConfig(config, ip) {
 }  
 
 // Initialize SSE
-initializeSSE(sseUrl, processNewPeerEvent, processDeleteEvent);
+initializeSSE(sseUrl, processNewPeerEvent, processRemovePeerEvent);
 
 // Keep the script running
 process.stdin.resume();

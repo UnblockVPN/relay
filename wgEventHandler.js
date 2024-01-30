@@ -26,23 +26,23 @@ const wgConfPath = '/etc/wireguard/wg0.conf';
 const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
-function processInsertEvent(ip, pubkey) {
+function processNewPeerEvent(ip, pubkey) {
     try {
         semaphore.acquire();
 
         readWgConfig((config, error) => {
             if (error) {
-                logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT event: ${error}`);
+                logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for NEW_PEER event: ${error}`);
                 return;
             }
 
             if (!config) {
-                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for INSERT event.');
+                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for NEW_PEER event.');
                 return;
             }
 
             const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
-            logger.debug('File: wgEventHandler.js: Updated configuration prepared for INSERT event.');
+            logger.debug('File: wgEventHandler.js: Updated configuration prepared for NEW_PEER event.');
             writeTempWgConfig(tempConfigPath, updatedConfig);
             applyWgConfig(tempConfigPath);
 
@@ -86,7 +86,7 @@ function removePeerFromConfig(config, ip) {
 }  
 
 // Initialize SSE
-initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);
+initializeSSE(sseUrl, processNewPeerEvent, processDeleteEvent);
 
 // Keep the script running
 process.stdin.resume();

@@ -1,4 +1,3 @@
-// File: newPeerHandler.js
 function processAddPeerEvent(ip, pubkey) {
     try {
         semaphore.acquire();
@@ -10,12 +9,12 @@ function processAddPeerEvent(ip, pubkey) {
             }
 
             if (!config) {
-                logger.error('File: newPeerHandler.js: Empty WireGuard configuration for ADD_PEER event.');
+                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for ADD_PEER event.');
                 return;
             }
 
             const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
-            logger.debug('File: newPeerHandler.js: Updated configuration prepared for ADD_PEER event.');
+            logger.debug(`File: newPeerHandler.js: Updated configuration prepared for ADD_PEER event.');
             writeTempWgConfig(tempConfigPath, updatedConfig);
             applyWgConfig(tempConfigPath);
 

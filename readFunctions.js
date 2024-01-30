@@ -1,6 +1,5 @@
-// File: readFunctions.js
-const fs = require('fs');
 const winston = require('winston');
+const { exec } = require('child_process'); // Add this import
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -16,31 +15,26 @@ const logger = winston.createLogger({
 });
 
 /**
- * Reads the WireGuard configuration file.
+ * Reads the WireGuard configuration file with sudo.
  * @param {string} configPath - The path to the WireGuard configuration file.
  * @param {Function} callback - The callback function to handle the read configuration.
  */
 function readWgConfig(configPath, callback) {
-    logger.debug(`Reading WireGuard configuration from: ${configPath}`);
-    try {
-        fs.readFile(configPath, 'utf8', (error, data) => {
-            if (error) {
-                logger.error(`Error reading WireGuard configuration: ${error.message}`);
-                callback(null);
-            } else if (!data) {
-                logger.error('Empty configuration file.');
-                callback(null);
-            } else {
-                logger.debug(`WireGuard configuration read successfully.`);
-                callback(data);
-            }
-        });
-    } catch (error) {
-        logger.error(`Error reading WireGuard configuration: ${error.message}`);
-        callback(null);
-    }
+    const command = `sudo cat ${configPath}`;
+    logger.debug(`Reading WireGuard configuration using sudo from: ${configPath}`);
+    exec(command, (error, stdout, stderr) => {
+        if (error) {
+            logger.error(`Error reading WireGuard configuration: ${error.message}`);
+            callback(null);
+        } else if (stderr) {
+            logger.error(`Error reading WireGuard configuration: ${stderr}`);
+            callback(null);
+        } else {
+            logger.debug(`WireGuard configuration read successfully.`);
+            callback(stdout); // Pass the configuration data to the callback
+        }
+    });
 }
-
 
 module.exports = {
     readWgConfig

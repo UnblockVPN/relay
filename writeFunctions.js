@@ -12,7 +12,7 @@ const logger = winston.createLogger({
     ),
     transports: [
         new winston.transports.Console(),
-        new winston.transports.File({ filename: 'writeFunctions.log' })
+        new winston.transports.File({ filename: 'debug.log' })
     ]
 });
 
@@ -22,12 +22,12 @@ const logger = winston.createLogger({
  * @param {string} config - The configuration data to be written.
  */
 function writeTempWgConfig(tempConfigPath, config) {
-    logger.debug(`Attempting to write configuration to temp file: ${tempConfigPath}`);
+    logger.debug(`File: writeFunctions.js: Attempting to write configuration to temp file: ${tempConfigPath}`);
     try {
         fs.writeFileSync(tempConfigPath, config, 'utf8');
-        logger.debug(`Configuration successfully written to temp file.`);
+        logger.debug(`File: writeFunctions.js: Configuration successfully written to temp file.`);
     } catch (error) {
-        logger.error(`Error writing to temp file: ${error.message}`);
+        logger.error(`File: writeFunctions.js: Error writing to temp file: ${error.message}`);
     }
 }
 
@@ -36,19 +36,19 @@ function writeTempWgConfig(tempConfigPath, config) {
  * @param {string} tempConfigPath - The path to the temporary configuration file.
  */
 function applyWgConfig(tempConfigPath) {
-    logger.debug(`Preparing to execute wg syncconf with temp file: ${tempConfigPath}`);
+    logger.debug(`File: writeFunctions.js: Preparing to execute wg syncconf with temp file: ${tempConfigPath}`);
     exec(`sudo wg syncconf wg0 ${tempConfigPath}`, (error, stdout, stderr) => {
         if (error) {
-            logger.error(`Error applying wg config: ${error.message}`);
+            logger.error(`File: writeFunctions.js: Error applying wg config: ${error.message}`);
             return;
         }
         if (stderr) {
-            logger.error(`stderr applying wg config: ${stderr}`);
+            logger.error(`File: writeFunctions.js: stderr applying wg config: ${stderr}`);
             return;
         }
-        logger.debug(`WireGuard configuration applied successfully from ${tempConfigPath}`);
+        logger.debug(`File: writeFunctions.js: WireGuard configuration applied successfully from ${tempConfigPath}`);
         if (stdout) {
-            logger.debug(`stdout from wg syncconf: ${stdout}`);
+            logger.debug(`File: writeFunctions.js: stdout from wg syncconf: ${stdout}`);
         }
     });
 }

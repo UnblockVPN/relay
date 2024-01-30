@@ -10,7 +10,7 @@ const logger = winston.createLogger({
     ),
     transports: [
         new winston.transports.Console(),
-        new winston.transports.File({ filename: 'readFunctions.log' })
+        new winston.transports.File({ filename: 'debug.log' })
     ]
 });
 

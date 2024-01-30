@@ -8,8 +8,9 @@ const { createSemaphore } = require('ws');
 const semaphore = createSemaphore(1);
 
 const { processRemovePeerEvent } = require('./sseHandler');
-const { processNewPeerEvent } = require('./newPeerHandler');
-const { initializeSSE, processNewPeerEvent, processRemovePeerEvent } = require('./sseHandler');
+const { processAddPeerEvent } = require('./newPeerHandler');
+initializeSSE(sseUrl, processAddPeerEvent, processRemovePeerEvent);
+
 
 // Configure the logger
 const logger = winston.createLogger({

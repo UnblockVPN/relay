@@ -1,5 +1,5 @@
 // File: newPeerHandler.js
-function processNewPeerEvent(ip, pubkey) {
+function processAddPeerEvent(ip, pubkey) {
     try {
         semaphore.acquire();
 

@@ -1,5 +1,4 @@
 // File: wgEventHandler.js
-//const { initializeSSE } = require('./sseHandler');
 const { readWgConfig } = require('./readFunctions');
 const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');
 const winston = require('winston');
@@ -8,7 +7,6 @@ const { exec } = require('child_process');
 const { createSemaphore } = require('ws');
 const semaphore = createSemaphore(1);
 const { initializeSSE, processInsertEvent, processDeleteEvent } = require('./sseHandler');
-
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -30,30 +28,30 @@ const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
 function processInsertEvent(ip, pubkey) {
     try {
-      semaphore.acquire();
-  
-      readWgConfig((config, error) => {
-        if (error) {
-          logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT event: ${error}`);
-          return;
-        }
-  
-        if (!config) {
-          logger.error('File: wgEventHandler.js: Empty WireGuard configuration for INSERT event.');
-          return;
-        }
-  
-        const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
-        logger.debug('File: wgEventHandler.js: Updated configuration prepared for INSERT event.');
-        writeTempWgConfig(tempConfigPath, updatedConfig);
-        applyWgConfig(tempConfigPath);
-  
-        semaphore.release();
-      });
+        semaphore.acquire();
+
+        readWgConfig((config, error) => {
+            if (error) {
+                logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT event: ${error}`);
+                return;
+            }
+
+            if (!config) {
+                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for INSERT event.');
+                return;
+            }
+
+            const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
+            logger.debug('File: wgEventHandler.js: Updated configuration prepared for INSERT event.');
+            writeTempWgConfig(tempConfigPath, updatedConfig);
+            applyWgConfig(tempConfigPath);
+
+            semaphore.release();
+        });
     } catch (error) {
-      logger.error(`File: wgEventHandler.js: Error acquiring semaphore: ${error.message}`);
+        logger.error(`File: wgEventHandler.js: Error acquiring semaphore: ${error.message}`);
     }
-  }
+}
 
 function processDeleteEvent(ip) {
     logger.debug(`File: wgEventHandler.js: Initiating processDeleteEvent for IP: ${ip}`);
@@ -71,20 +69,24 @@ function processDeleteEvent(ip) {
 
 function updateConfigWithNewPeer(config, ip, pubkey) {
     logger.debug(`File: wgEventHandler.js: Updating config with new peer: IP - ${ip}, pubkey - ${pubkey}`);
+
     // Logic to update the configuration with the new peer.
     // Make sure to return the updated configuration.
+    // Replace with actual update logic.
     return config; // Replace with actual update logic.
 }
 
 function removePeerFromConfig(config, ip) {
     logger.debug(`File: wgEventHandler.js: Removing peer from config: IP - ${ip}`);
+
     // Logic to remove the specified peer from the configuration.
     // Make sure to return the updated configuration.
+    // Replace with actual removal logic.
     return config; // Replace with actual removal logic.
 }  
 
 // Initialize SSE
-//initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);
+initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);
 
 // Keep the script running
 process.stdin.resume();

@@ -6,7 +6,7 @@ const util = require('util');
 const { exec } = require('child_process');
 const { createSemaphore } = require('ws');
 const semaphore = createSemaphore(1);
-const { initializeSSE, processAddPeerEvent, processRemovePeerEvent } = require('./sseHandler');
+const { initializeSSE, processNewPeerEvent, processRemovePeerEvent } = require('./sseHandler');
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -26,7 +26,7 @@ const wgConfPath = '/etc/wireguard/wg0.conf';
 const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
-function processAddPeerEvent(ip, pubkey) {
+function processNewPeerEvent(ip, pubkey) {
     try {
         semaphore.acquire();
 
@@ -82,11 +82,11 @@ function removePeerFromConfig(config, ip) {
     // Logic to remove the specified peer from the configuration.
     // Make sure to return the updated configuration.
     // Replace with actual removal logic.
-    return config; // Replace with actual removal logic.
+    return config; // Replace with actual update logic.
 }  
 
 // Initialize SSE
-initializeSSE(sseUrl, processAddPeerEvent, processRemovePeerEvent);
+initializeSSE(sseUrl, processNewPeerEvent, processRemovePeerEvent);
 
 // Keep the script running
 process.stdin.resume();

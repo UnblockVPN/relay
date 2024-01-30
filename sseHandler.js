@@ -1,5 +1,4 @@
-// File: sseHandler.js
-const EventSource = require('eventsource');
+const http = require('http');
 const winston = require('winston');
 
 // Configure the logger
@@ -16,31 +15,35 @@ const logger = winston.createLogger({
 });
 
 function initializeSSE(sseUrl, processInsertEvent, processDeleteEvent) {
-    const eventSource = new EventSource(sseUrl);
+    const request = http.request(sseUrl, (response) => {
+        response.on('data', (data) => {
+            try {
+                const parsedData = JSON.parse(data);
 
-    eventSource.onmessage = event => {
-        try {
-            logger.debug('File: sseHandler.js: Event received. Starting to process...');
-            const data = JSON.parse(event.data);
-            logger.debug(`File: sseHandler.js: Parsed event data: ${JSON.stringify(data, null, 2)}`);
-
-            if (data.type === 'INSERT') {
-                const { ipv4_address, pubkey } = data.data;
-                logger.debug(`File: sseHandler.js: Processing INSERT event for IP: ${ipv4_address} with pubkey: ${pubkey}`);
-                processInsertEvent(ipv4_address, pubkey);
-            } else if (data.type === 'DELETE') {
-                const { ipv4_address } = data.data;
-                logger.debug(`File: sseHandler.js: Processing DELETE event for IP: ${ipv4_address}`);
-                processDeleteEvent(ipv4_address);
+                if (parsedData.type === 'INSERT') {
+                    const { ipv4_address, pubkey } = parsedData.data;
+                    logger.debug(`Processing INSERT event for IP: ${ipv4_address} with pubkey: ${pubkey}`);
+                    processInsertEvent(ipv4_address, pubkey);
+                } else if (parsedData.type === 'DELETE') {
+                    const { ipv4_address } = parsedData.data;
+                    logger.debug(`Processing DELETE event for IP: ${ipv4_address}`);
+                    processDeleteEvent(ipv4_address);
+                }
+            } catch (error) {
+                logger.error(`Error processing event: ${error.message}`);
             }
-        } catch (error) {
-            logger.error(`File: sseHandler.js: Error processing event: ${error.message}`);
-        }
-    };
+        });
 
-    eventSource.onerror = error => {
-        logger.error(`File: sseHandler.js: EventSource encountered an error: ${JSON.stringify(error, null, 2)}`);
-    };
+        response.on('error', (error) => {
+            logger.error(`Error receiving data from server: ${error.message}`);
+        });
+
+        response.on('end', () => {
+            logger.debug('Connection to server closed.');
+        });
+    });
+
+    request.end();
 }
 
 module.exports = {

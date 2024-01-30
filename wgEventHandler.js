@@ -3,6 +3,11 @@ const { initializeSSE } = require('./sseHandler');
 const { readWgConfig } = require('./readFunctions');
 const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');
 const winston = require('winston');
+const util = require('util');
+const { exec } = require('child_process');
+const { createSemaphore } = require('ws');
+
+const semaphore = createSemaphore(1);
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -23,31 +28,31 @@ const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
 function processInsertEvent(ip, pubkey) {
-    logger.debug(`File: wgEventHandler.js: Initiating processInsertEvent for IP: ${ip}`);
-    
-    // Add debugging statement
-    logger.debug('File: wgEventHandler.js: Before reading WireGuard configuration.');
-
-    readWgConfig((config, error) => {
+    try {
+      semaphore.acquire();
+  
+      readWgConfig((config, error) => {
         if (error) {
-            logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT event: ${error}`);
-            return;
+          logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT event: ${error}`);
+          return;
         }
-
+  
         if (!config) {
-            logger.error('File: wgEventHandler.js: Empty WireGuard configuration for INSERT event.');
-            return;
+          logger.error('File: wgEventHandler.js: Empty WireGuard configuration for INSERT event.');
+          return;
         }
-        
-        // Add debugging statement
-        logger.debug('File: wgEventHandler.js: After reading WireGuard configuration.');
-
+  
         const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
         logger.debug('File: wgEventHandler.js: Updated configuration prepared for INSERT event.');
         writeTempWgConfig(tempConfigPath, updatedConfig);
         applyWgConfig(tempConfigPath);
-    });
-}
+  
+        semaphore.release();
+      });
+    } catch (error) {
+      logger.error(`File: wgEventHandler.js: Error acquiring semaphore: ${error.message}`);
+    }
+  }
 
 function processDeleteEvent(ip) {
     logger.debug(`File: wgEventHandler.js: Initiating processDeleteEvent for IP: ${ip}`);

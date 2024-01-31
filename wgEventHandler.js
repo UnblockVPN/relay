@@ -26,7 +26,7 @@ eventSource.onmessage = event => {
         if (data.eventType.toUpperCase() === 'INSERT') {
             logger.info('Received an INSERT event:', data);
             // Add logic to handle INSERT event here
-        } else if (data.eventType === 'delete') {
+        } else if (data.eventType === 'DELETE') {
             logger.info('Received a DELETE event:', data);
             // Add logic to handle DELETE event here
         } else {

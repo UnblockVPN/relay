@@ -23,7 +23,7 @@ eventSource.onmessage = event => {
         logger.debug(`Received SSE event: ${event.data}`);
 
         // Check the event type and log accordingly
-        if (data.eventType === 'insert') {
+        if (data.eventType.toUpperCase() === 'INSERT') {
             logger.info('Received an INSERT event:', data);
             // Add logic to handle INSERT event here
         } else if (data.eventType === 'delete') {

@@ -22,7 +22,16 @@ eventSource.onmessage = event => {
         const data = JSON.parse(event.data);
         logger.debug(`Received SSE event: ${event.data}`);
 
-        // Add logic to act on events here
+        // Check the event type and log accordingly
+        if (data.eventType === 'insert') {
+            logger.info('Received an INSERT event:', data);
+            // Add logic to handle INSERT event here
+        } else if (data.eventType === 'delete') {
+            logger.info('Received a DELETE event:', data);
+            // Add logic to handle DELETE event here
+        } else {
+            logger.warn('Received an unsupported event type:', data.eventType);
+        }
 
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);

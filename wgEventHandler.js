@@ -1,15 +1,5 @@
-const { readWgConfig } = require('./readFunctions');
-const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');
+const EventSource = require('eventsource');
 const winston = require('winston');
-const util = require('util');
-const { exec } = require('child_process');
-const { createSemaphore } = require('ws');
-const semaphore = createSemaphore(1);
-
-const { processRemovePeerFromConfig } = require('./sseHandler');
-const { processAddPeerEvent } = require('./newPeerHandler');
-
-initializeSSE(sseUrl, processAddPeerEvent, processRemovePeerFromConfig);
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -19,72 +9,30 @@ const logger = winston.createLogger({
         winston.format.json()
     ),
     transports: [
-        new winston.transports.Console(),
-        new winston.transports.File({ filename: 'debug.log' })
+        new winston.transports.Console()
     ]
 });
 
 const sseUrl = 'https://api.unblockvpn.io/sse/events';
-const wgConfPath = '/etc/wireguard/wg0.conf';
-const tempDir = '/home/unblockvpnio/';
-const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
-function processAddPeerEvent(ip, pubkey) {
+const eventSource = new EventSource(sseUrl);
+
+eventSource.onmessage = event => {
     try {
-        semaphore.acquire();
+        const data = JSON.parse(event.data);
+        logger.debug(`Received SSE event: ${event.data}`);
 
-        readWgConfig((config, error) => {
-            if (error) {
-                logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for ADD_PEER event: ${error}`);
-                return;
-            }
+        // Add logic to act on events here
 
-            if (!config) {
-                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for ADD_PEER event.');
-                return;
-            }
-
-            const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
-            logger.debug('File: wgEventHandler.js: Updated configuration prepared for ADD_PEER event.');
-            writeTempWgConfig(tempConfigPath, updatedConfig);
-            applyWgConfig(tempConfigPath);
-
-            semaphore.release();
-        });
     } catch (error) {
-        logger.error(`File: wgEventHandler.js: Error acquiring semaphore: ${error.message}`);
+        logger.error(`Error processing event: ${error.message}`);
     }
-}
+};
 
-function processRemovePeerEvent(ip) {
-    logger.debug(`File: wgEventHandler.js: Initiating processRemovePeerEvent for IP: ${ip}`);
-    readWgConfig(wgConfPath, config => {
-        if (!config) {
-            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for REMOVE_PEER event.');
-            return;
-        }
-        const updatedConfig = removePeerFromConfig(config, ip);
-        logger.debug('File: wgEventHandler.js: Updated configuration prepared for REMOVE_PEER event.');
-        writeTempWgConfig(tempConfigPath, updatedConfig);
-        applyWgConfig(tempConfigPath);
-    });
-}
+eventSource.onerror = error => {
+    logger.error(`EventSource encountered an error: ${error.message}`);
+};
 
-function updateConfigWithNewPeer(config, ip, pubkey) {
-    logger.debug(`File: wgEventHandler.js: Updating config with new peer: IP - ${ip}, pubkey - ${pubkey}`);
-
-    // Logic to update the configuration with the new peer.
-    // Make sure to return the updated configuration.
-    // Replace with actual update logic.
-    return config; // Replace with actual update logic.
-}
-
-function removePeerFromConfig(config, ip) {
-    logger.debug(`File: wgEventHandler.js: Removing peer from config: IP - ${ip}`);
-
-    // Logic to remove the specified peer from the configuration.
-    // Make sure to return the updated configuration.
-    // Replace with actual removal logic.
-    return config; // Replace with actual removal logic.
-}
-
+// Keep the script running
+process.stdin.resume();
+logger.debug('Script initialized and running.');

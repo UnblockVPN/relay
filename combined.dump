@@ -1,4 +1,43 @@
-// File: readFunctions.js
+const winston = require('winston');
+// Configure the logger
+const logger = winston.createLogger({
+    level: 'debug',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'debug.log' })
+    ]
+});
+
+function handleAddPeerEvent(ip, pubkey) {
+    try {
+        semaphore.acquire();
+
+        readWgConfig((config, error) => {
+            if (error) {
+                logger.error(`File: newPeerHandler.js: Failed to read WireGuard configuration for ADD_PEER event: ${error}`);
+                return;
+            }
+
+            if (!config) {
+                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for ADD_PEER event.');
+                return;
+            }
+
+            const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
+            logger.debug(`File: newPeerHandler.js: Updated configuration prepared for ADD_PEER event.');
+            writeTempWgConfig(tempConfigPath, updatedConfig);
+            applyWgConfig(tempConfigPath);
+
+            semaphore.release();
+        });
+    } catch (error) {
+        logger.error(`File: newPeerHandler.js: Error acquiring semaphore: ${error.message}`);
+    }
+}// File: readFunctions.js
 const winston = require('winston');
 const { exec } = require('child_process'); // Add this import
 
@@ -50,9 +89,9 @@ function readWgConfig(callback) {
 module.exports = {
     readWgConfig
 };
-// File: sseHandler.js
-const EventSource = require('eventsource');
+const http = require('http');
 const winston = require('winston');
+const retry = require('retry');
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -68,41 +107,66 @@ const logger = winston.createLogger({
 });
 
 function initializeSSE(sseUrl, processInsertEvent, processDeleteEvent) {
-    const eventSource = new EventSource(sseUrl);
+    const retryOptions = {
+        retries: 5, // Number of times to retry the request
+        factor: 1000, // Exponential backoff factor
+        minTimeout: 1000, // Minimum timeout between retries
+        maxTimeout: 5000 // Maximum timeout between retries
+    };
 
-    eventSource.onmessage = event => {
+    retry(async () => {
+        const request = http.request(sseUrl, (response) => {
+            response.on('data', (data) => {
+                try {
+                    const parsedData = JSON.parse(data);
+
+                    if (parsedData.type === 'INSERT') {
+                        const { ipv4_address, pubkey } = parsedData.data;
+                        logger.debug(`Processing INSERT event for IP: ${ipv4_address} with pubkey: ${pubkey}`);
+                        processInsertEvent(ipv4_address, pubkey);
+                    } else if (parsedData.type === 'DELETE') {
+                        const { ipv4_address } = parsedData.data;
+                        logger.debug(`Processing DELETE event for IP: ${ipv4_address}`);
+                        processDeleteEvent(ipv4_address);
+                    }
+                } catch (error) {
+                    logger.error(`Error processing event: ${error.message}`);
+                }
+            });
+
+            response.on('error', (error) => {
+                logger.error(`Error receiving data from server: ${error.message}`);
+            });
+
+            response.on('end', () => {
+                logger.debug('Connection to server closed.');
+            });
+        });
+
         try {
-            logger.debug('File: sseHandler.js: Event received. Starting to process...');
-            const data = JSON.parse(event.data);
-            logger.debug(`File: sseHandler.js: Parsed event data: ${JSON.stringify(data, null, 2)}`);
-
-            if (data.type === 'INSERT') {
-                const { ipv4_address, pubkey } = data.data;
-                logger.debug(`File: sseHandler.js: Processing INSERT event for IP: ${ipv4_address} with pubkey: ${pubkey}`);
-                processInsertEvent(ipv4_address, pubkey);
-            } else if (data.type === 'DELETE') {
-                const { ipv4_address } = data.data;
-                logger.debug(`File: sseHandler.js: Processing DELETE event for IP: ${ipv4_address}`);
-                processDeleteEvent(ipv4_address);
-            }
+            await request.end();
         } catch (error) {
-            logger.error(`File: sseHandler.js: Error processing event: ${error.message}`);
+            // Handle error here, e.g. retry
+            logger.error('Error sending request:', error);
         }
-    };
-
-    eventSource.onerror = error => {
-        logger.error(`File: sseHandler.js: EventSource encountered an error: ${JSON.stringify(error, null, 2)}`);
-    };
+    }, retryOptions);
 }
 
 module.exports = {
     initializeSSE
 };
-// File: wgEventHandler.js
-const { initializeSSE } = require('./sseHandler');
 const { readWgConfig } = require('./readFunctions');
 const { writeTempWgConfig, applyWgConfig } = require('./writeFunctions');
 const winston = require('winston');
+const util = require('util');
+const { exec } = require('child_process');
+const { createSemaphore } = require('ws');
+const semaphore = createSemaphore(1);
+
+const { processRemovePeerFromConfig } = require('./sseHandler');
+const { processAddPeerEvent } = require('./newPeerHandler');
+
+initializeSSE(sseUrl, processAddPeerEvent, processRemovePeerFromConfig);
 
 // Configure the logger
 const logger = winston.createLogger({
@@ -122,42 +186,42 @@ const wgConfPath = '/etc/wireguard/wg0.conf';
 const tempDir = '/home/unblockvpnio/';
 const tempConfigPath = tempDir + 'wg0.conf.update.temp';
 
-function processInsertEvent(ip, pubkey) {
-    logger.debug(`File: wgEventHandler.js: Initiating processInsertEvent for IP: ${ip}`);
-    
-    // Add debugging statement
-    logger.debug('File: wgEventHandler.js: Before reading WireGuard configuration.');
+function processAddPeerEvent(ip, pubkey) {
+    try {
+        semaphore.acquire();
 
-    readWgConfig((config, error) => {
-        if (error) {
-            logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for INSERT event: ${error}`);
-            return;
-        }
+        readWgConfig((config, error) => {
+            if (error) {
+                logger.error(`File: wgEventHandler.js: Failed to read WireGuard configuration for ADD_PEER event: ${error}`);
+                return;
+            }
 
-        if (!config) {
-            logger.error('File: wgEventHandler.js: Empty WireGuard configuration for INSERT event.');
-            return;
-        }
-        
-        // Add debugging statement
-        logger.debug('File: wgEventHandler.js: After reading WireGuard configuration.');
+            if (!config) {
+                logger.error('File: wgEventHandler.js: Empty WireGuard configuration for ADD_PEER event.');
+                return;
+            }
 
-        const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
-        logger.debug('File: wgEventHandler.js: Updated configuration prepared for INSERT event.');
-        writeTempWgConfig(tempConfigPath, updatedConfig);
-        applyWgConfig(tempConfigPath);
-    });
+            const updatedConfig = updateConfigWithNewPeer(config, ip, pubkey);
+            logger.debug('File: wgEventHandler.js: Updated configuration prepared for ADD_PEER event.');
+            writeTempWgConfig(tempConfigPath, updatedConfig);
+            applyWgConfig(tempConfigPath);
+
+            semaphore.release();
+        });
+    } catch (error) {
+        logger.error(`File: wgEventHandler.js: Error acquiring semaphore: ${error.message}`);
+    }
 }
 
-function processDeleteEvent(ip) {
-    logger.debug(`File: wgEventHandler.js: Initiating processDeleteEvent for IP: ${ip}`);
+function processRemovePeerEvent(ip) {
+    logger.debug(`File: wgEventHandler.js: Initiating processRemovePeerEvent for IP: ${ip}`);
     readWgConfig(wgConfPath, config => {
         if (!config) {
-            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for DELETE event.');
+            logger.error('File: wgEventHandler.js: Failed to read WireGuard configuration for REMOVE_PEER event.');
             return;
         }
         const updatedConfig = removePeerFromConfig(config, ip);
-        logger.debug('File: wgEventHandler.js: Updated configuration prepared for DELETE event.');
+        logger.debug('File: wgEventHandler.js: Updated configuration prepared for REMOVE_PEER event.');
         writeTempWgConfig(tempConfigPath, updatedConfig);
         applyWgConfig(tempConfigPath);
     });
@@ -165,24 +229,22 @@ function processDeleteEvent(ip) {
 
 function updateConfigWithNewPeer(config, ip, pubkey) {
     logger.debug(`File: wgEventHandler.js: Updating config with new peer: IP - ${ip}, pubkey - ${pubkey}`);
+
     // Logic to update the configuration with the new peer.
     // Make sure to return the updated configuration.
+    // Replace with actual update logic.
     return config; // Replace with actual update logic.
 }
 
 function removePeerFromConfig(config, ip) {
     logger.debug(`File: wgEventHandler.js: Removing peer from config: IP - ${ip}`);
+
     // Logic to remove the specified peer from the configuration.
     // Make sure to return the updated configuration.
+    // Replace with actual removal logic.
     return config; // Replace with actual removal logic.
-}  
+}
 
-// Initialize SSE
-initializeSSE(sseUrl, processInsertEvent, processDeleteEvent);
-
-// Keep the script running
-process.stdin.resume();
-logger.debug('File: wgEventHandler.js: Script initialized and running.');
 // File: writeFunctions.js
 const fs = require('fs');
 const { exec } = require('child_process');

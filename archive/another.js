@@ -1,26 +1,19 @@
-// wgEventHandler.js
 const EventSource = require('eventsource');
-const fs = require('fs');
-const { exec } = require('child_process');
 const winston = require('winston');
 
 // Configure the logger
 const logger = winston.createLogger({
-    level: 'debug', // Set log level to debug for detailed logging
+    level: 'debug',
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()
     ),
     transports: [
-        new winston.transports.Console(),
-        new winston.transports.File({ filename: 'debug.log' })
+        new winston.transports.Console()
     ]
 });
 
 const sseUrl = 'https://api.unblockvpn.io/sse/events';
-const wgConfPath = '/etc/wireguard/wg0.conf';
-const tempDir = '/home/unblockvpnio/temp/';
-const scriptPath = '/home/unblockvpnio/apply_wg_config.sh';
 
 const eventSource = new EventSource(sseUrl);
 
@@ -29,47 +22,27 @@ eventSource.onmessage = event => {
         const data = JSON.parse(event.data);
         logger.debug(`Received SSE event: ${event.data}`);
 
-        if (data.type === 'INSERT') {
-            const { ipv4_address, pubkey } = data.data;
-            updateWireGuardConfig(ipv4_address, pubkey);
-        } else if (data.type === 'DELETE') {
-            const { ipv4_address, pubkey } = data.data;
-            deleteWireGuardConfig(ipv4_address, pubkey);
+        // Check if data is valid and type is defined
+        if (data && typeof data.type !== 'undefined') {
+            if (data.type.toUpperCase() === 'INSERT') {
+                logger.info('Received an INSERT event:', data);
+                // Add logic to handle INSERT event here
+            } else if (data.type.toUpperCase() === 'DELETE') {
+                logger.info('Received a DELETE event:', data);
+                // Add logic to handle DELETE event here
+            } else {
+                logger.warn('Received an unsupported event type:', data.type);
+                // Handle unsupported event type gracefully
+            }
+        } else {
+            logger.warn('Received an event with missing or undefined type:', data);
+            // Handle missing or undefined type gracefully
         }
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);
+        // Handle JSON parsing errors or other exceptions gracefully
     }
 };
-
-eventSource.onerror = error => {
-    logger.error(`EventSource encountered an error: ${error.message}`);
-};
-
-function deleteWireGuardConfig(ip, pubkey) {
-    logger.debug(`Starting deleteWireGuardConfig for IP: ${ip} and pubkey: ${pubkey}`);
-    // ... [Logic for deleting WireGuard config] ...
-    const tempConfigPath = `${tempDir}wg0.conf.tmp`;
-    // ... [Write to tempConfigPath and handle response] ...
-    exec(`sudo ${scriptPath} ${tempConfigPath}`, handleExecResponse);
-};
-
-function updateWireGuardConfig(ip, pubkey) {
-    logger.debug(`Starting updateWireGuardConfig with IP: ${ip} and pubkey: ${pubkey}`);
-    // ... [Logic for updating WireGuard config] ...
-    const tempConfigPath = `${tempDir}wg0.conf.tmp`;
-    // ... [Write to tempConfigPath and handle response] ...
-    exec(`sudo ${scriptPath} ${tempConfigPath}`, handleExecResponse);
-};
-
-function handleExecResponse(error, stdout, stderr) {
-    if (error) {
-        logger.error(`Error executing apply_wg_config script: ${error.message}`);
-        return;
-    }
-    if (stdout) logger.debug(`stdout: ${stdout}`);
-    if (stderr) logger.debug(`stderr: ${stderr}`);
-    logger.debug('WireGuard configuration applied successfully');
-}
 
 // Keep the script running
 process.stdin.resume();

@@ -38,17 +38,6 @@ eventSource.onmessage = event => {
     }
 };
 
-eventSource.onerror = error => {
-    let errorMessage = `EventSource encountered an errorr: ${error.message}`;
-    
-    // Check if additional error details are available
-    if (error.status && error.statusText) {
-        errorMessage += ` (Status Code: ${error.status}, Status Text: ${error.statusText})`;
-    }
-    
-    logger.error(errorMessage);
-};
-
 // Keep the script running
 process.stdin.resume();
 logger.debug('Script initialized and running.');

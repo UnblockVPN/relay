@@ -22,21 +22,25 @@ eventSource.onmessage = event => {
         const data = JSON.parse(event.data);
         logger.debug(`Received SSE event: ${event.data}`);
 
-        // Check the event type and log accordingly
-        if (data.eventType.toUpperCase() === 'INSERT') {
-            logger.info('Received an INSERT event:', data);
-            // Add logic to handle INSERT event here
-        } else if (data.eventType === 'DELETE') {
-            logger.info('Received a DELETE event:', data);
-            // Add logic to handle DELETE event here
+        if (data && data.eventType) {
+            if (data.eventType.toUpperCase() === 'INSERT') {
+                logger.info('Received an INSERT event:', data);
+                // Add logic to handle INSERT event here
+            } else if (data.eventType.toUpperCase() === 'DELETE') {
+                logger.info('Received a DELETE event:', data);
+                // Add logic to handle DELETE event here
+            } else {
+                logger.warn('Received an unsupported event type:', data.eventType);
+            }
         } else {
-            logger.warn('Received an unsupported event type:', data.eventType);
+            logger.warn('Received an event with missing or undefined eventType:', data);
         }
 
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);
     }
 };
+
 
 // Keep the script running
 process.stdin.resume();

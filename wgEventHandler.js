@@ -39,7 +39,14 @@ eventSource.onmessage = event => {
 };
 
 eventSource.onerror = error => {
-    logger.error(`EventSource encountered an error: ${error.message}`);
+    let errorMessage = `EventSource encountered an error: ${error.message}`;
+    
+    // Check if additional error details are available
+    if (error.status && error.statusText) {
+        errorMessage += ` (Status Code: ${error.status}, Status Text: ${error.statusText})`;
+    }
+    
+    logger.error(errorMessage);
 };
 
 // Keep the script running

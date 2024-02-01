@@ -39,7 +39,7 @@ eventSource.onmessage = event => {
             // Handle missing or undefined type gracefully
         }
     } catch (error) {
-        logger.error(`Error processing event: ${error.message}`);
+        // logger.error(`Error processing event: ${error.message}`);
         // Handle JSON parsing errors or other exceptions gracefully
     }
 };

@@ -20,7 +20,7 @@ const eventSource = new EventSource(sseUrl);
 eventSource.onmessage = event => {
     try {
         const data = JSON.parse(event.data);
-        logger.debug(`Received SSE event: ${event.data}`);
+        // logger.debug(`Received SSE event: ${event.data}`);
 
         // Check if data is valid and type is defined
         if (data && typeof data.type !== 'undefined') {

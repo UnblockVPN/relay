@@ -39,7 +39,7 @@ eventSource.onmessage = event => {
 };
 
 eventSource.onerror = error => {
-    let errorMessage = `EventSource encountered an error: ${error.message}`;
+    let errorMessage = `EventSource encountered an errorr: ${error.message}`;
     
     // Check if additional error details are available
     if (error.status && error.statusText) {

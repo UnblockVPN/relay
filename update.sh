@@ -7,7 +7,7 @@
 repository_url="https://github.com/UnblockVPN/relay"
 app_directory="/home/unblockvpnio"
 clone_directory="/home/unblockvpnio/tmp"
-app_name="wgEventHandler.js"  # Change this to match the name in your pm2.config.js
+app_name="sse.js"  # Change this to match the name in your pm2.config.js
 
 # Copy this script to a temporary location
 cat "$0" > "$clone_directory/update.sh"

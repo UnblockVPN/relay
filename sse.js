@@ -24,7 +24,7 @@ axios.defaults.retry = 3; // Retry 3 times
 axios.defaults.retryDelay = exponentialBackoff; // Use exponential backoff retry strategy
 
 const sseUrl = 'https://api.unblockvpn.io/sse/events';
-const wgConfigPath = 'wg0.conf';
+const wgConfigPath = '/etc/wireguard/wg0.conf';
 
 // Create an Axios instance with retry
 const axiosInstance = axios.create();

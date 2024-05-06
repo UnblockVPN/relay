@@ -36,8 +36,12 @@ const eventSource = new EventSource(sseUrl);
 
 eventSource.onmessage = event => {
     try {
-        logger.debug('Received message:', event.data); // Log the received message
-        const eventData = JSON.parse(event.data);
+        const messageData = event.data; // this is the raw 'data: {...}' string
+        logger.debug('#### Received raw event data:', messageData);
+
+        // Parsing the JSON data from the SSE message
+        const jsonStartPos = messageData.indexOf('{');
+        const eventData = JSON.parse(messageData.slice(jsonStartPos));
         logger.debug('Parsed event data:', eventData);
         logger.debug('Keys in eventData:', Object.keys(eventData)); // List all keys
 

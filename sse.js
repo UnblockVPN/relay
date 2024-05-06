@@ -69,7 +69,7 @@ eventSource.onmessage = event => {
                 logger.debug('Received unknown event type:', eventData);
             }
         } else {
-            logger.error('Invalid event data received:', eventData);
+            logger.error('Invalid event-data received:', eventData);
         }
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);

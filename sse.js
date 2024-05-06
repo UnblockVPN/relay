@@ -7,7 +7,7 @@ const { exponentialBackoff } = require('axios-retry');
 
 // Configure the logger
 const logger = winston.createLogger({
-    level: 'info', // Set log level to debug for additional logging - turn this down in production!!!!
+    level: 'verbose', // Set log level to debug for additional logging - turn this down in production!!!!
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()

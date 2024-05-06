@@ -1,8 +1,6 @@
 const fs = require('fs');
 const EventSource = require('eventsource');
 const winston = require('winston');
-const { addPeer, removePeer } = require('./peer.js');
-
 
 const logger = winston.createLogger({
     level: 'debug',
@@ -58,14 +56,24 @@ function insertPeer(peerData) {
         return;
     }
 
-    addPeer(peerData, (error) => {
-        if (error) {
-            logger.error('Error inserting peer:', error);
-        } else {
-            logger.info('Inserted new peer:', peerData);
-        }
-    });
+    try {
+        // Log the original configuration for comparison
+        const originalConfig = fs.readFileSync(wgConfigPath, 'utf-8');
+        logger.debug('Original WireGuard Config:', originalConfig);
+
+        const peerConfig = `\n[Peer]\nPublicKey = ${peerData.pubkey}\nAllowedIPs = ${peerData.ipv4_address}/32\n`;
+        fs.appendFileSync(wgConfigPath, peerConfig);
+
+        // Log the new configuration to verify the change
+        const updatedConfig = fs.readFileSync(wgConfigPath, 'utf-8');
+        logger.debug('Updated WireGuard Config:', updatedConfig);
+
+        logger.info('Inserted new peer:', peerData);
+    } catch (error) {
+        logger.error('Error inserting peer:', error);
+    }
 }
+
 
 function deletePeer(peerData) {
     logger.info('Starting to delete peer:', peerData);
@@ -75,15 +83,25 @@ function deletePeer(peerData) {
         return;
     }
 
-    removePeer(peerData, (error) => {
-        if (error) {
-            logger.error('Error deleting peer:', error);
-        } else {
-            logger.info('Deleted peer:', peerData);
-        }
-    });
-}
+    try {
+        // Log the original configuration for comparison
+        let config = fs.readFileSync(wgConfigPath, 'utf-8');
+        logger.debug('Original WireGuard Config:', config);
 
+        const peerConfig = `[Peer]\nPublicKey = ${peerData.pubkey}\nAllowedIPs = ${peerData.ipv4_address}/32`;
+        const newConfig = config.replace(peerConfig, ''); // Store the modified configuration
+
+        fs.writeFileSync(wgConfigPath, newConfig);
+
+        // Log the new configuration to verify the change
+        const updatedConfig = fs.readFileSync(wgConfigPath, 'utf-8');
+        logger.debug('Updated WireGuard Config:', updatedConfig);
+
+        logger.info('Deleted peer:', peerData);
+    } catch (error) {
+        logger.error('Error deleting peer:', error);
+    }
+}
 
 
 

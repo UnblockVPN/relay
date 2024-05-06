@@ -1,93 +1,63 @@
-require('dotenv').config(); // Load environment variables from .env file
+davidawatere@wg-us-central1-001:/home/unblockvpnio$ cat sse.js
 const fs = require('fs');
 const EventSource = require('eventsource');
 const winston = require('winston');
-const axios = require('axios');
-const { exponentialBackoff } = require('axios-retry');
 
-// Configure the logger
 const logger = winston.createLogger({
-    level: 'debug',
+    level: 'info',
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()
     ),
     transports: [
-        new winston.transports.Console({ level: 'debug' }),
-        new winston.transports.File({ filename: 'events.log' }),
-        new winston.transports.File({ filename: 'gateway-errors.log', level: 'error' })
+        new winston.transports.Console(),
+        new winston.transports.File({ filename: 'events.log' })
     ]
 });
 
-
-// Axios retry configuration
-axios.defaults.retry = 3; // Retry 3 times
-axios.defaults.retryDelay = exponentialBackoff; // Use exponential backoff retry strategy
-
-const sseUrl = process.env.API_ENDPOINT; // API endpoint from environment variable
-const wgConfigPath = process.env.WG_CONFIG_PATH; // WireGuard config path from environment variable
-
-// Create an Axios instance with retry
-const axiosInstance = axios.create();
-axiosInstance.defaults.retry = 3;
-axiosInstance.defaults.retryDelay = exponentialBackoff;
+const sseUrl = 'https://api.unblockvpn.io/sse/events';
+const wgConfigPath = '/etc/wireguard/wg0.conf';
 
 const eventSource = new EventSource(sseUrl);
 
 eventSource.onmessage = event => {
+    logger.debug('Raw event data:', event.data);
     try {
-        const messageData = event.data; // this is the raw 'data: {...}' string
-        logger.debug('#### Received raw event data:', messageData);
+        const data = JSON.parse(event.data);
+        if (data && data.type) {
+            if (data.type.toUpperCase() === 'INSERT') {
+                logger.debug(`Event type received: ${data.type}`, data);
 
-        // Parsing the JSON data from the SSE message
-        const jsonStartPos = messageData.indexOf('{');
-        const eventData = JSON.parse(messageData.slice(jsonStartPos));
-        logger.debug('Parsed event data:', eventData);
-        logger.debug('Keys in eventData:', Object.keys(eventData)); // List all keys
-
-        // Safely access properties
-        const name = eventData?.name ?? 'Name Undefined';
-        const pubkey = eventData?.pubkey ?? 'Pubkey Undefined';
-        const ipv4_address = eventData?.ipv4_address ?? 'IP Undefined';
-        const eventType = eventData?.event_type?.toUpperCase() ?? 'UNDEFINED';
-
-        logger.debug(`### Event Details Immediately After Parsing ###`);
-        logger.debug(`### Name: ${name}`);
-        logger.debug(`### Pubkey: ${pubkey}`);
-        logger.debug(`### IP: ${ipv4_address}`);
-        logger.debug(`### End of Event Details ###`);
-
-        // Handle known event types
-        if (['INSERT', 'DELETE'].includes(eventType)) {
-            logger.debug(`Received ${eventType} event:`, eventData);
-            eventType === 'INSERT' ? insertPeer(eventData) : deletePeer(eventData);
-        } else {
-            logger.debug('Received unhandled or unknown event type:', eventType);
+                insertPeer(data.data);
+            } else if (data.type.toUpperCase() === 'DELETE') {
+                deletePeer(data.data);
+            }
         }
     } catch (error) {
-        logger.error(`Error processing event: ${error.message}`, { eventData });
+        logger.error(`Error processing event: ${error.message}`);
     }
 };
 
-
-
-
-
-
-
-
 function insertPeer(peerData) {
+    logger.info('Starting to insert peer:', peerData);
+
     if (!peerData || !peerData.pubkey || !peerData.ipv4_address) {
-        logger.error('Invalid peer data received during insertion:', peerData);
+        logger.error('Invalid peer data received.');
         return;
     }
 
-    const { pubkey, ipv4_address } = peerData;
-    logger.debug(`Attempting to insert peer with pubkey ${pubkey} and IPv4 address ${ipv4_address}`);
-
-    const peerConfig = `\n[Peer]\nPublicKey = ${pubkey}\nAllowedIPs = ${ipv4_address}/32\n`;
     try {
+        // Log the original configuration for comparison
+        const originalConfig = fs.readFileSync(wgConfigPath, 'utf-8');
+        logger.debug('Original WireGuard Config:', originalConfig);
+
+        const peerConfig = `\n[Peer]\nPublicKey = ${peerData.pubkey}\nAllowedIPs = ${peerData.ipv4_address}/32\n`;
         fs.appendFileSync(wgConfigPath, peerConfig);
+
+        // Log the new configuration to verify the change
+        const updatedConfig = fs.readFileSync(wgConfigPath, 'utf-8');
+        logger.debug('Updated WireGuard Config:', updatedConfig);
+
         logger.info('Inserted new peer:', peerData);
     } catch (error) {
         logger.error('Error inserting peer:', error);
@@ -96,22 +66,35 @@ function insertPeer(peerData) {
 
 
 function deletePeer(peerData) {
+    logger.info('Starting to delete peer:', peerData);
+
     if (!peerData || !peerData.pubkey || !peerData.ipv4_address) {
-        logger.error('Invalid peer data received during deletion:', peerData);
+        logger.error('Invalid peer data received for deletion:', peerData);
         return;
     }
 
-    const { pubkey, ipv4_address } = peerData;
-    logger.debug(`Attempting to delete peer with pubkey ${pubkey} and IPv4 address ${ipv4_address}`);
-
     try {
+        // Log the original configuration for comparison
         let config = fs.readFileSync(wgConfigPath, 'utf-8');
-        const peerConfig = `[Peer]\nPublicKey = ${pubkey}\nAllowedIPs = ${ipv4_address}/32`;
-        config = config.replace(peerConfig, '');
-        fs.writeFileSync(wgConfigPath, config);
+        logger.debug('Original WireGuard Config:', config);
+
+        const peerConfig = `[Peer]\nPublicKey = ${peerData.pubkey}\nAllowedIPs = ${peerData.ipv4_address}/32`;
+        const newConfig = config.replace(peerConfig, ''); // Store the modified configuration
+
+        fs.writeFileSync(wgConfigPath, newConfig);
+
+        // Log the new configuration to verify the change
+        const updatedConfig = fs.readFileSync(wgConfigPath, 'utf-8');
+        logger.debug('Updated WireGuard Config:', updatedConfig);
+
         logger.info('Deleted peer:', peerData);
     } catch (error) {
         logger.error('Error deleting peer:', error);
     }
 }
 
+
+
+eventSource.onerror = error => {
+    logger.error('SSE connection error:', { message: error.message || error, type: 'SSE Error' });
+};

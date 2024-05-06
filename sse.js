@@ -39,9 +39,9 @@ eventSource.onmessage = event => {
         logger.debug('Received message:', event.data); // Log the received message
         const eventData = JSON.parse(event.data);
         logger.debug('Parsed event data:', eventData);
-        logger.debug('Keys and values in eventData:', JSON.stringify(eventData, null, 2));  // Detailed log of all data
+        logger.debug('Keys in eventData:', Object.keys(eventData)); // List all keys
 
-        // Safe access to properties
+        // Safely access properties
         const name = eventData?.name ?? 'Name Undefined';
         const pubkey = eventData?.pubkey ?? 'Pubkey Undefined';
         const ipv4_address = eventData?.ipv4_address ?? 'IP Undefined';
@@ -51,23 +51,20 @@ eventSource.onmessage = event => {
         logger.debug(`### Name: ${name}`);
         logger.debug(`### Pubkey: ${pubkey}`);
         logger.debug(`### IP: ${ipv4_address}`);
-        logger.debug(`### End of Event Details Immediately After Parsing ###`);
+        logger.debug(`### End of Event Details ###`);
 
-        if (eventType === 'INSERT' || eventType === 'DELETE') {
-            if (eventType === 'INSERT') {
-                logger.debug('Received INSERT event:', eventData);
-                insertPeer(eventData);
-            } else if (eventType === 'DELETE') {
-                logger.debug('Received DELETE event:', eventData);
-                deletePeer(eventData);
-            }
+        // Handle known event types
+        if (['INSERT', 'DELETE'].includes(eventType)) {
+            logger.debug(`Received ${eventType} event:`, eventData);
+            eventType === 'INSERT' ? insertPeer(eventData) : deletePeer(eventData);
         } else {
             logger.debug('Received unhandled or unknown event type:', eventType);
         }
     } catch (error) {
-        logger.error(`Error processing event: ${error.message}`);
+        logger.error(`Error processing event: ${error.message}`, { eventData });
     }
 };
+
 
 
 

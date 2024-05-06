@@ -1,4 +1,3 @@
-// sse.js  
 const fs = require('fs');
 const EventSource = require('eventsource');
 const winston = require('winston');
@@ -7,7 +6,7 @@ const { exponentialBackoff } = require('axios-retry');
 
 // Configure the logger
 const logger = winston.createLogger({
-    level: 'info',
+    level: 'debug', // Set log level to debug for additional logging
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()
@@ -15,7 +14,7 @@ const logger = winston.createLogger({
     transports: [
         new winston.transports.Console(),
         new winston.transports.File({ filename: 'events.log' }),
-        new winston.transports.File({ filename: 'gateway-errors.log', level: 'error' }) // Add file transport for gateway errors
+        new winston.transports.File({ filename: 'gateway-errors.log', level: 'error' })
     ]
 });
 
@@ -35,11 +34,14 @@ const eventSource = new EventSource(sseUrl);
 
 eventSource.onmessage = event => {
     try {
+        logger.debug('Received message:', event.data); // Log the received message
         const data = JSON.parse(event.data);
         if (data && data.type) {
             if (data.type.toUpperCase() === 'INSERT') {
+                logger.debug('Received INSERT event:', data); // Log the received INSERT event
                 insertPeer(data.data);
             } else if (data.type.toUpperCase() === 'DELETE') {
+                logger.debug('Received DELETE event:', data); // Log the received DELETE event
                 deletePeer(data.data);
             }
         }
@@ -79,18 +81,3 @@ function deletePeer(peerData) {
         logger.error('Error deleting peer:', error);
     }
 }
-
-eventSource.onerror = async error => {
-    logger.error('SSE error:', error);
-
-    // Log HTTP 502 errors to gateway-errors.log
-    if (error.status === 502) {
-        try {
-            await axiosInstance.post('https://api.unblockvpn.io/log', {
-                message: 'HTTP 502 Bad Gateway error encountered in SSE connection'
-            });
-        } catch (axiosError) {
-            logger.error('Failed to log error:', axiosError.message);
-        }
-    }
-};

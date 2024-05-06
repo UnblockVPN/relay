@@ -36,6 +36,8 @@ const eventSource = new EventSource(sseUrl);
 eventSource.onmessage = event => {
     try {
         logger.debug('Received message:', event.data); // Log the received message
+        logger.debug(`### Event Details ###`);
+        
         const eventData = JSON.parse(event.data);
         logger.debug('Parsed event data:', eventData);  // Add this line
 

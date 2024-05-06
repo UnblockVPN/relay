@@ -40,41 +40,36 @@ eventSource.onmessage = event => {
         logger.debug(`### Test ###`);
 
         const eventData = JSON.parse(event.data);
-        logger.debug('Parsed event data:', eventData);  // Add this line to confirm what's parsed
+        logger.debug('Parsed event data:', eventData);  // Confirming parsed data
 
-        // Check if eventData contains necessary properties
-        if (eventData && eventData.event_type) {
+        // Check if eventData contains necessary properties and is a handled type
+        if (eventData && eventData.event_type && (eventData.event_type.toUpperCase() === 'INSERT' || eventData.event_type.toUpperCase() === 'DELETE')) {
             const eventType = eventData.event_type.toUpperCase();
             logger.debug('Extracted event type:', eventType);
 
-            // Correcting property access based on actual JSON keys
             logger.debug(`### Event Details ###`);
-            logger.debug(`### Name: ${eventData.name}`);  // Assuming 'name' is correct and exists
-            logger.debug(`### Pubkey: ${eventData.pubkey}`);  // Corrected from eventData.id to eventData.pubkey
-            logger.debug(`### IP: ${eventData.ipv4_address}`);  // Assuming 'ipv4_address' is correct and exists
+            logger.debug(`### Name: ${eventData.name}`);
+            logger.debug(`### Pubkey: ${eventData.pubkey}`);
+            logger.debug(`### IP: ${eventData.ipv4_address}`);
             logger.debug(`### End of Event Details ###`);
 
-            // Handle INSERT event
+            // Handle events based on type
             if (eventType === 'INSERT') {
                 logger.debug('Received INSERT event:', eventData);
                 insertPeer(eventData);
-            } 
-            // Handle DELETE event
-            else if (eventType === 'DELETE') {
+            } else if (eventType === 'DELETE') {
                 logger.debug('Received DELETE event:', eventData);
                 deletePeer(eventData);
-            } 
-            // Log unknown event types
-            else {
-                logger.debug('Received unknown event type:', eventData);
             }
         } else {
-            logger.error('Invalid event-data received:', eventData);
+            // Log unexpected or unhandled event types without treating them as errors
+            logger.debug('Received unhandled or unknown event type:', eventData.event_type);
         }
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);
     }
 };
+
 
 
 

@@ -20,37 +20,34 @@ const wgConfigPath = '/etc/wireguard/wg0.conf';
 const eventSource = new EventSource(sseUrl);
 
 eventSource.onmessage = event => {
-    logger.debug('Raw event data:', event.data);  // Log raw data as received from SSE
+    logger.debug('Raw event data:', event.data);
     try {
-        const data = JSON.parse(event.data);
-        // Log the parsed JSON data to see the structure and contents clearly
-        logger.debug('Parsed JSON data:', JSON.stringify(data, null, 2));
+        const parsedData = JSON.parse(event.data);
+        logger.debug('Parsed JSON data:', JSON.stringify(parsedData, null, 2));
 
-        if (data && data.type) {
-            logger.debug(`Event type received: ${data.type}`, data);
+        // Extract the event_type directly from the nested data object
+        const eventType = (parsedData.data && parsedData.data.event_type) ? parsedData.data.event_type.toUpperCase() : 'UNKNOWN';
+        logger.debug(`Handling event type: ${eventType}`, { eventData: parsedData.data });
 
-            switch (data.type.toUpperCase()) {
-                case 'INSERT':
-                    logger.debug('Processing INSERT event', { detail: data.data });
-                    insertPeer(data.data);
-                    break;
-                case 'DELETE':
-                    logger.debug('Processing DELETE event', { detail: data.data });
-                    deletePeer(data.data);
-                    break;
-                case 'UPDATE':
-                    // Explicitly ignore UPDATE events and log that they are being ignored.
-                    logger.info('Ignoring UPDATE event as per configuration', { detail: data.data });
-                    break;
-                default:
-                    logger.info(`Unhandled event type: ${data.type}`, { eventData: data });
-            }
-            
+        switch (eventType) {
+            case 'INSERT':
+                insertPeer(parsedData.data);
+                break;
+            case 'DELETE':
+                deletePeer(parsedData.data);
+                break;
+            default:
+                // This will ignore UPDATE and any other types not explicitly handled
+                logger.info(`Ignoring event type: ${eventType}`, { eventData: parsedData.data });
         }
     } catch (error) {
-        logger.error(`Error processing event: ${error.message}`);
+        logger.error(`Error processing event: ${error.message}`, { rawEvent: event.data });
     }
 };
+
+
+
+
 function insertPeer(peerData) {
     logger.info('Starting to insert peer:', peerData);
 

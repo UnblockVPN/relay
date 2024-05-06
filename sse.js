@@ -1,4 +1,3 @@
-davidawatere@wg-us-central1-001:/home/unblockvpnio$ cat sse.js
 const fs = require('fs');
 const EventSource = require('eventsource');
 const winston = require('winston');

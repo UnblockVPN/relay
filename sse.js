@@ -67,11 +67,14 @@ eventSource.onmessage = event => {
 
 function insertPeer(peerData) {
     if (!peerData || !peerData.pubkey || !peerData.ipv4_address) {
-        logger.error('Invalid peer data received.');
+        logger.error('Invalid peer data received during insertion:', peerData);
         return;
     }
 
-    const peerConfig = `\n[Peer]\nPublicKey = ${peerData.pubkey}\nAllowedIPs = ${peerData.ipv4_address}/32\n`;
+    const { id, ipv4_address } = peerData;
+    logger.debug(`Attempting to insert peer with pubkey ${pubkey} and IPv4 address ${ipv4_address}`);
+
+    const peerConfig = `\n[Peer]\nPublicKey = ${pubkey}\nAllowedIPs = ${ipv4_address}/32\n`;
     try {
         fs.appendFileSync(wgConfigPath, peerConfig);
         logger.info('Inserted new peer:', peerData);
@@ -80,15 +83,19 @@ function insertPeer(peerData) {
     }
 }
 
+
 function deletePeer(peerData) {
     if (!peerData || !peerData.pubkey || !peerData.ipv4_address) {
-        logger.error('Invalid peer data received.');
+        logger.error('Invalid peer data received during deletion:', peerData);
         return;
     }
 
+    const { id, ipv4_address } = peerData;
+    logger.debug(`Attempting to delete peer with pubkey ${pubkey} and IPv4 address ${ipv4_address}`);
+
     try {
         let config = fs.readFileSync(wgConfigPath, 'utf-8');
-        const peerConfig = `[Peer]\nPublicKey = ${peerData.pubkey}\nAllowedIPs = ${peerData.ipv4_address}/32`;
+        const peerConfig = `[Peer]\nPublicKey = ${pubkey}\nAllowedIPs = ${ipv4_address}/32`;
         config = config.replace(peerConfig, '');
         fs.writeFileSync(wgConfigPath, config);
         logger.info('Deleted peer:', peerData);
@@ -96,3 +103,4 @@ function deletePeer(peerData) {
         logger.error('Error deleting peer:', error);
     }
 }
+

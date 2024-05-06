@@ -43,6 +43,13 @@ eventSource.onmessage = event => {
             const eventType = eventData.event_type.toUpperCase();
             logger.debug('Extracted event type:', eventType);
 
+            // Log event details
+            logger.debug(`### Event Details ###`);
+            logger.debug(`### Name: ${eventData.name}`);
+            logger.debug(`### Pubkey: ${eventData.id}`);
+            logger.debug(`### IP: ${eventData.ipv4_address}`);
+            logger.debug(`### End of Event Details ###`);
+
             // Handle INSERT event
             if (eventType === 'INSERT') {
                 logger.debug('Received INSERT event:', eventData);
@@ -65,13 +72,14 @@ eventSource.onmessage = event => {
     }
 };
 
+
 function insertPeer(peerData) {
     if (!peerData || !peerData.pubkey || !peerData.ipv4_address) {
         logger.error('Invalid peer data received during insertion:', peerData);
         return;
     }
 
-    const { id, ipv4_address } = peerData;
+    const { pubkey, ipv4_address } = peerData;
     logger.debug(`Attempting to insert peer with pubkey ${pubkey} and IPv4 address ${ipv4_address}`);
 
     const peerConfig = `\n[Peer]\nPublicKey = ${pubkey}\nAllowedIPs = ${ipv4_address}/32\n`;
@@ -90,7 +98,7 @@ function deletePeer(peerData) {
         return;
     }
 
-    const { id, ipv4_address } = peerData;
+    const { pubkey, ipv4_address } = peerData;
     logger.debug(`Attempting to delete peer with pubkey ${pubkey} and IPv4 address ${ipv4_address}`);
 
     try {

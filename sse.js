@@ -20,23 +20,30 @@ const wgConfigPath = '/etc/wireguard/wg0.conf';
 const eventSource = new EventSource(sseUrl);
 
 eventSource.onmessage = event => {
-    logger.debug('Raw event data:', event.data);
+    logger.debug('Raw event data:', event.data);  // Log raw data as received from SSE
     try {
         const data = JSON.parse(event.data);
-        if (data && data.type) {
-            if (data.type.toUpperCase() === 'INSERT') {
-                logger.debug(`Event type received: ${data.type}`, data);
+        // Log the parsed JSON data to see the structure and contents clearly
+        logger.debug('Parsed JSON data:', JSON.stringify(data, null, 2));
 
-                insertPeer(data.data);
-            } else if (data.type.toUpperCase() === 'DELETE') {
-                deletePeer(data.data);
+        if (data && data.type) {
+            logger.debug(`Event type received: ${data.type}`, data);
+
+            switch (data.type.toUpperCase()) {
+                case 'INSERT':
+                    insertPeer(data.data);
+                    break;
+                case 'DELETE':
+                    deletePeer(data.data);
+                    break;
+                default:
+                    logger.info(`Unhandled event type: ${data.type}`);
             }
         }
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);
     }
 };
-
 function insertPeer(peerData) {
     logger.info('Starting to insert peer:', peerData);
 

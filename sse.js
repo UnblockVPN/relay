@@ -31,14 +31,21 @@ eventSource.onmessage = event => {
 
             switch (data.type.toUpperCase()) {
                 case 'INSERT':
+                    logger.debug('Processing INSERT event', { detail: data.data });
                     insertPeer(data.data);
                     break;
                 case 'DELETE':
+                    logger.debug('Processing DELETE event', { detail: data.data });
                     deletePeer(data.data);
                     break;
+                case 'UPDATE':
+                    // Explicitly ignore UPDATE events and log that they are being ignored.
+                    logger.info('Ignoring UPDATE event as per configuration', { detail: data.data });
+                    break;
                 default:
-                    logger.info(`Unhandled event type: ${data.type}`);
+                    logger.info(`Unhandled event type: ${data.type}`, { eventData: data });
             }
+            
         }
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);

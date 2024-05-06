@@ -1,3 +1,4 @@
+require('dotenv').config(); // Load environment variables from .env file
 const fs = require('fs');
 const EventSource = require('eventsource');
 const winston = require('winston');
@@ -22,8 +23,8 @@ const logger = winston.createLogger({
 axios.defaults.retry = 3; // Retry 3 times
 axios.defaults.retryDelay = exponentialBackoff; // Use exponential backoff retry strategy
 
-const sseUrl = 'https://api.unblockvpn.io/sse/events';
-const wgConfigPath = '/etc/wireguard/wg0.conf';
+const sseUrl = process.env.API_ENDPOINT; // API endpoint from environment variable
+const wgConfigPath = process.env.WG_CONFIG_PATH; // WireGuard config path from environment variable
 
 // Create an Axios instance with retry
 const axiosInstance = axios.create();
@@ -35,15 +36,29 @@ const eventSource = new EventSource(sseUrl);
 eventSource.onmessage = event => {
     try {
         logger.debug('Received message:', event.data); // Log the received message
-        const data = JSON.parse(event.data);
-        if (data && data.type) {
-            if (data.type.toUpperCase() === 'INSERT') {
-                logger.debug('Received INSERT event:', data); // Log the received INSERT event
-                insertPeer(data.data);
-            } else if (data.type.toUpperCase() === 'DELETE') {
-                logger.debug('Received DELETE event:', data); // Log the received DELETE event
-                deletePeer(data.data);
+        const eventData = JSON.parse(event.data);
+
+        // Check if eventData contains necessary properties
+        if (eventData && eventData.event_type) {
+            const eventType = eventData.event_type.toUpperCase();
+            logger.debug('Extracted event type:', eventType);
+
+            // Handle INSERT event
+            if (eventType === 'INSERT') {
+                logger.debug('Received INSERT event:', eventData);
+                insertPeer(eventData);
+            } 
+            // Handle DELETE event
+            else if (eventType === 'DELETE') {
+                logger.debug('Received DELETE event:', eventData);
+                deletePeer(eventData);
+            } 
+            // Log unknown event types
+            else {
+                logger.debug('Received unknown event type:', eventData);
             }
+        } else {
+            logger.error('Invalid event data received:', eventData);
         }
     } catch (error) {
         logger.error(`Error processing event: ${error.message}`);

@@ -40,26 +40,18 @@ eventSource.onmessage = event => {
         logger.debug(`### Test ###`);
 
         const eventData = JSON.parse(event.data);
-        logger.debug('Parsed event data:', eventData);  // Add this line
-
-            // Log event details
-            logger.debug(`### Event Details ###`);
-            logger.debug(`### Name: ${eventData.name}`);
-            logger.debug(`### Pubkey: ${eventData.id}`);
-            logger.debug(`### IP: ${eventData.ipv4_address}`);
-            logger.debug(`### End of Event Details ###`);
-
+        logger.debug('Parsed event data:', eventData);  // Add this line to confirm what's parsed
 
         // Check if eventData contains necessary properties
         if (eventData && eventData.event_type) {
             const eventType = eventData.event_type.toUpperCase();
             logger.debug('Extracted event type:', eventType);
 
-            // Log event details
+            // Correcting property access based on actual JSON keys
             logger.debug(`### Event Details ###`);
-            logger.debug(`### Name: ${eventData.name}`);
-            logger.debug(`### Pubkey: ${eventData.id}`);
-            logger.debug(`### IP: ${eventData.ipv4_address}`);
+            logger.debug(`### Name: ${eventData.name}`);  // Assuming 'name' is correct and exists
+            logger.debug(`### Pubkey: ${eventData.pubkey}`);  // Corrected from eventData.id to eventData.pubkey
+            logger.debug(`### IP: ${eventData.ipv4_address}`);  // Assuming 'ipv4_address' is correct and exists
             logger.debug(`### End of Event Details ###`);
 
             // Handle INSERT event
@@ -83,6 +75,7 @@ eventSource.onmessage = event => {
         logger.error(`Error processing event: ${error.message}`);
     }
 };
+
 
 
 function insertPeer(peerData) {

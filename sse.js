@@ -37,7 +37,14 @@ eventSource.onmessage = event => {
     try {
         logger.debug('Received message:', event.data); // Log the received message
         const eventData = JSON.parse(event.data);
+            // Log event details
+            logger.debug(`### Event Details ###`);
+            logger.debug(`### Name: ${eventData.name}`);
+            logger.debug(`### Pubkey: ${eventData.id}`);
+            logger.debug(`### IP: ${eventData.ipv4_address}`);
+            logger.debug(`### End of Event Details ###`);
 
+            
         // Check if eventData contains necessary properties
         if (eventData && eventData.event_type) {
             const eventType = eventData.event_type.toUpperCase();

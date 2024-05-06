@@ -37,30 +37,23 @@ const eventSource = new EventSource(sseUrl);
 eventSource.onmessage = event => {
     try {
         logger.debug('Received message:', event.data); // Log the received message
-        logger.debug(`### Test ###`);
-
         const eventData = JSON.parse(event.data);
-        logger.debug('Parsed event data:', eventData);  // Confirming parsed data
+        logger.debug('Parsed event data:', eventData);
+        logger.debug('Keys and values in eventData:', JSON.stringify(eventData, null, 2));  // Detailed log of all data
 
-        // Log event details immediately after parsing to inspect the data
+        // Safe access to properties
+        const name = eventData?.name ?? 'Name Undefined';
+        const pubkey = eventData?.pubkey ?? 'Pubkey Undefined';
+        const ipv4_address = eventData?.ipv4_address ?? 'IP Undefined';
+        const eventType = eventData?.event_type?.toUpperCase() ?? 'UNDEFINED';
+
         logger.debug(`### Event Details Immediately After Parsing ###`);
-        logger.debug(`### Name: ${eventData.name}`);
-        logger.debug(`### Pubkey: ${eventData.pubkey}`);
-        logger.debug(`### IP: ${eventData.ipv4_address}`);
+        logger.debug(`### Name: ${name}`);
+        logger.debug(`### Pubkey: ${pubkey}`);
+        logger.debug(`### IP: ${ipv4_address}`);
         logger.debug(`### End of Event Details Immediately After Parsing ###`);
 
-        // Normalizing the event type for comparison
-        const eventType = eventData.event_type.toUpperCase();
-        logger.debug('Normalized event type:', eventType); // Additional debug information
-
         if (eventType === 'INSERT' || eventType === 'DELETE') {
-            // Log event details again before handling to verify the consistency
-            logger.debug(`### Event Details Before Handling ###`);
-            logger.debug(`### Name: ${eventData.name}`);
-            logger.debug(`### Pubkey: ${eventData.pubkey}`);
-            logger.debug(`### IP: ${eventData.ipv4_address}`);
-            logger.debug(`### End of Event Details Before Handling ###`);
-
             if (eventType === 'INSERT') {
                 logger.debug('Received INSERT event:', eventData);
                 insertPeer(eventData);
@@ -75,6 +68,8 @@ eventSource.onmessage = event => {
         logger.error(`Error processing event: ${error.message}`);
     }
 };
+
+
 
 
 

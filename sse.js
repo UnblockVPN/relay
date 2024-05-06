@@ -7,17 +7,18 @@ const { exponentialBackoff } = require('axios-retry');
 
 // Configure the logger
 const logger = winston.createLogger({
-    level: 'verbose', // Set log level to debug for additional logging - turn this down in production!!!!
+    level: 'debug',
     format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()
     ),
     transports: [
-        new winston.transports.Console(),
+        new winston.transports.Console({ level: 'debug' }),
         new winston.transports.File({ filename: 'events.log' }),
         new winston.transports.File({ filename: 'gateway-errors.log', level: 'error' })
     ]
 });
+
 
 // Axios retry configuration
 axios.defaults.retry = 3; // Retry 3 times
@@ -36,8 +37,8 @@ const eventSource = new EventSource(sseUrl);
 eventSource.onmessage = event => {
     try {
         logger.debug('Received message:', event.data); // Log the received message
-        logger.debug(`### Event Details ###`);
-        
+        logger.debug(`### Test ###`);
+
         const eventData = JSON.parse(event.data);
         logger.debug('Parsed event data:', eventData);  // Add this line
 

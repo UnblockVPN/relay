@@ -1,5 +1,6 @@
 const fs = require('fs');
 const { exec } = require('child_process');
+const path = require('path');
 const wgConfigPath = '/etc/wireguard/wg0.conf';
 
 function addPeer(peerData) {
@@ -16,7 +17,8 @@ function addPeer(peerData) {
     }
 
     // Execute the update script and log the output
-    exec('sudo /home/unblockvpnio/update_wg.sh', (error, stdout, stderr) => {
+    const scriptPath = path.join(__dirname, 'update_wg.sh');
+    exec(`sudo ${scriptPath}`, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error executing update script: ${error.message}`);
             return;
@@ -53,7 +55,8 @@ function removePeer(peerData) {
     }
 
     // Execute the update script and log the output
-    exec('sudo /home/unblockvpnio/update_wg.sh', (error, stdout, stderr) => {
+    const scriptPath = path.join(__dirname, 'update_wg.sh');
+    exec(`sudo ${scriptPath}`, (error, stdout, stderr) => {
         if (error) {
             console.error(`Error executing update script: ${error.message}`);
             return;
